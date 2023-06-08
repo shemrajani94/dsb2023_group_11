@@ -441,6 +441,29 @@ last_fit_xgb %>%
 ```
 
 
+```{r}
+#Assessing which model affords the best classification from these results:
+#
+# First, considering the results from each model in turn: 
+#
+# The logistic regression (LR) performs reasonably, as judged by the fact that the ROC is decent (0.83) although the model has low sensitivity while having high specificity. Meanwhile, the precision and recall (and thus F-score) metrics are very low (in the 30% territory); so there is little discrimination between any elements in the confusion matrix; no particular fold is far better than any other. So, this is not a good model. 
+#
+# The decision tree model fares slightly worse in the ROC metric (0.78) but it has better sensitivity than the LR model. The evaluation metrics are also better, e.g. precision (0.65) and recall (0.47). This suggests that the model does fit some of the data with a priori information better.
+#
+# The random forest results compare more favourably, being the best of all models tested in terms of the ROC result (0.94). The model has perfect precision but almost zero recall and thus a poor F-score. It also has poor sensitivity.
+#
+# The bootstrapping decision-tree option, gradient boosting, fares similarly to that of the random forest model (ROC  = 0.93), but overall evaluation metrics look a lot better and are more balanced. For example, the precision and recall are 69 and 46% respectively. The sensitivity (46%) and specificity (100%) are also much better and more balanced. So the Gradient boosting method results look particularly good.
+#
+# the k-nearest neighbour classification model does not perform so well (ROC = 0.71); it is derived from good specificity (100% = perfect) but low sensitivity (21%). Meanwhile, the statistical figure-of-merits, precision (30%) and recall (21%) are very low. So, this is not a good model.
+#
+# In summary, the gradient boosting model is clearly the best model. Others suffer in various regards, in particularly some are very imbalanced between precision versus recall, and/or sensitivity versus specificity. It makes sense that the gradient boosting (bootstrapping) model offers the best fit to the training data. This is because the random forest model will train many trees independently while a gradient boosting model will train many trees subsequently (correcting the errors in a given tree from that of its forerunner tree). Thus, the gradient boosting model has bootstrapping functionality, and its results are easier to interpret than that of a random forest model because gradient boosting models are afforded from one final tree while the result of a random forest model are the ensemble of many trees that have been modelled in parallel. Given these fundamental model considerations, and the similar ROC of these two model options, the gradient boosting model was deemed to be the best model for being taken forward in classifying the test (unseen) movie data. 
+#
+#The results of applying these test data to the gradient boosting model are good, albeit less good than the results from the training data. This comparison stands to reason since unseen data will naturally fit less well than the training data which were used to create (i.e. were tailored to the fit of) the model. Besides, the results of testing and training data still fare well in having fairly small overall differences.
+#
+
+```
+
+
 ##  Calculating the cost of fraud to the company
 
 
