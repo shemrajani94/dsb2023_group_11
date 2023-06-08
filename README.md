@@ -11,3 +11,5 @@ activity on the credit card company based on the model that we had developed, an
 result from simply using a naive model.
 
 The project team comprised (alphabetical order): Jacqui Cole, Saagar Hemrajani, Vaani Kohli, Brent Lewis 
+
+The code was written in R using RStudio as the IDE, uploaded to Github in R Markdown, and its knitted form. 
