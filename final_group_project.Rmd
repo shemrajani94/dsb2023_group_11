@@ -849,7 +849,6 @@ cost <- cost %>%
 )
   
 # Summarising
-
 cost_summary <- cost %>% 
   summarise(across(starts_with(c("false","true", "amt")), 
             ~ sum(.x, na.rm = TRUE)))
