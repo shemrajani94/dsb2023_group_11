@@ -1,6 +1,6 @@
 ---
 title: "Final Group project"
-author: "Your name goes here"
+author: "Group 11: Jacqui Cole, Brent Lewis, Saagar Hemrajani, Vaani Kohli"
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -131,6 +131,7 @@ Group all variables by type and examine each variable class by class. The datase
 
 Strings are usually not a useful format for classification problems. The strings should be converted to factors, dropped, or otherwise transformed.
 
+
 ***Strings to Factors*** 
 
 -   `category`, Category of Merchant
@@ -189,12 +190,63 @@ Consider each variable and decide whether to keep, transform, or drop it. This i
 
 You have a number of variables and you have to decide which ones to use in your model. For instance, you have the latitude/lognitude of the customer, that of the merchant, the same data in radians, as well as the `distance_km` and `distance_miles`. Do you need them all? 
 
+```{r}
+card_fraud %>%
+  glimpse
+```
+
 
 ## Fit your workflows in smaller sample
 
 You will be running a series of different models, along the lines of the California housing example we have seen in class. However, this dataset has 670K rows and if you try various models and run cross validation on them, your computer may slow down or crash.
 
 Thus, we will work with a smaller sample of 10% of the values the original dataset to identify the best model, and once we have the best model we can use the full dataset to train- test our best model.
+
+```{r}
+# RATIONALE BEHIND OUR DECISION-MAKING PROCESS TO DETERMINE WHICH FEATURES TO CHOOSE FOR THE CREATION OF OUR CLASSIFICATION-BASED MACHINE-LEARNING MODEL THAT PREDICTS IF A TRANSACTION IS FRAUDULENT OR NOT.
+#
+# Considering each categories
+#
+# Strings
+#
+# category - we saw from our homework2 that fraud is linked to the category so we need to include this as a feature
+#
+# So, we short list: category
+#
+# job - we considered this but can see that there are far too many jobs listed that this data category is not useful as it is too fine
+# grained for our purposes. Hence, we drop this variable.
+# 
+# city, states and city_pop are likely correlated to each other. We are also not sure that these variables will impact significantly upon the likelihood of fraud. We decide that it is possible but we do not include any of these variables as a feature for the model for the time being, since we wish to see how the training and testing of our model fares with the other features that we have already chosen. Indeed, we don't wish to employ too many features because that could overfit the model. We could come back to considering the addition of one of these city/country variables later if need be, once we see if our model works or not with our other features.
+#
+# Geospatial data
+#
+# A range of these type of data are given which we realise are highly correlated, i.e. latitude and longitude of the transaction (lat, long), the latitude and longitude of the merchant (merch_lat, merch_long), the radius of one and the other latitude and longitude (lat1_radius and lat2_radius, and long1_radius, and long2_radius), distance between the merchant and card holder that is given in both km and miles (distance_miles and distance_km).
+#
+# It only feels sensible to choose distance_km since its calculation is based on the latitude and longitude of both merchant and card holder, and the radius of these variables. Meanwhile, we have to choose between a distance as a km or miles unit, so we simply decide on the metric option: distance_km.
+#
+# So, we short list: distance_km
+#
+# Dates and Times
+#
+# The dob variable is dropped because we intuit that the day or month of someone's birth will not impact on whether they are a target of fraud or not. However, their year of birth could impact on the likelihood of being a target of fraud or otherwise. One of the other variables, age, already exists as a proxy to the year of birth and so we decide that we can simply drop the dob, and use age for our purposes.
+#
+# So we short list: age
+#
+# We intuit that trans_date_trans_time will affect the likelihood of a fraudulent transaction (see homework 2). The trans_date_trans_time will need to be split up into hour, day, month and year, and whether or not the date was a weekday or not, but this has already been done for us, given the following variables are given: hour, wday, and month_name. So trans_date_trans_time is considered to be redundant. Homework2 also showed that the evidence was unclear for any correlation between year and fraud likelihood.
+#
+# So, we short list: hour, wday, month_name
+#
+# Numericals
+#
+# We intuit that the amount (amt) of money in the card transaction is surely a feature because it is more attractive to commit fraud when there is a great 'return on (fraud) investment'. Indeed, we saw in Homework2 that the amt variable is significantly correlated to the likelihood of fraudulent behaviour or otherwise.
+#
+# In summary, the above text has considered all variables in the card_fraud dataset in terms of whether or not they should be selected as any of our features for creating our machine-learning (classification) model which predicts whether nor not fraud occurs or not (cf the is_fraud variable). We concluded that the following variables should go forward as features:
+#
+# category, amt, hour, wday, month_name, age, distance_km
+#
+
+```
+
 
 
 ```{r}
