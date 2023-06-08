@@ -362,7 +362,7 @@ Thus, we will work with a smaller sample of 10% of the values the original datas
 # select a smaller subset
 my_card_fraud <- card_fraud %>% 
   select(is_fraud, category, amt, hour, wday, month_name, age, distance_km) %>% 
-  slice_sample(prop = 0.10) %>% 
+  slice_sample(prop = 0.05) %>% 
   mutate(hour = as.factor(hour))
 ```
 
@@ -857,8 +857,6 @@ cost <- cost %>%
   
     
   # true positives-- we thought they were fraud, and they were 
-
-
   
   # true negatives-- we thought they were ok, and they were 
 )
