@@ -1,6 +1,7 @@
 ---
 title: "Final Group project"
-author: "Group 11: Jacqui Cole, Brent Lewis, Saagar Hemrajani, Vaani Kohli"
+author: "Group 11: Jacqui Cole, Brent Lewis, Saagar Hemrajani, Vaani Kohli - https://github.com/shemrajani94/dsb2023_group_11"
+repo: "https://github.com/shemrajani94/dsb2023_group_11"
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -32,6 +33,12 @@ library(ranger)
 ```
 
 # The problem: predicting credit card fraud
+```{=html}
+<span style="color:red">
+  <a href="https://github.com/shemrajani94/dsb2023_group_11">Github Repo</a>
+</span>
+```
+
 
 The goal of the project is to predict fraudulent credit card transactions.
 
@@ -555,7 +562,7 @@ log_res <- log_wflow %>%
       kap, roc_auc, sens, spec),
     control = control_resamples(save_pred = TRUE)) 
 time <- toc()
-fit_time_models <- c(time[[4]])
+log_time <- time[[4]]
 
 
 tic()
@@ -567,7 +574,7 @@ tree_res <- tree_wflow %>%
       kap, roc_auc, sens, spec),
     control = control_resamples(save_pred = TRUE)) 
 time <- toc()
-fit_time_models <- append(fit_time_models,time[[4]])
+tree_time <- time[[4]]
 
 tic()
 rf_res <- rf_wflow %>% 
@@ -578,7 +585,7 @@ rf_res <- rf_wflow %>%
       kap, roc_auc, sens, spec),
     control = control_resamples(save_pred = TRUE)) 
 time <- toc()
-fit_time_models <- append(fit_time_models,time[[4]])
+rf_time <- time[[4]]
 
 tic()
 xgb_res <- xgb_wflow %>% 
@@ -589,7 +596,7 @@ xgb_res <- xgb_wflow %>%
       kap, roc_auc, sens, spec),
     control = control_resamples(save_pred = TRUE)) 
 time <- toc()
-fit_time_models <- append(fit_time_models,time[[4]])
+xgb_time <- time[[4]]
 
 tic()
 knn_res <- knn_wflow %>% 
@@ -600,10 +607,7 @@ knn_res <- knn_wflow %>%
       kap, roc_auc, sens, spec),
     control = control_resamples(save_pred = TRUE)) 
 time <- toc()
-fit_time_models <- append(fit_time_models,time[[4]])
-
-'Logistic Tree    Random Forest XGB    KNN'
-'3.99   4.521  7.458       2.418  16.544'
+knn_time <- time[[4]]
 
 ```
 
@@ -622,22 +626,26 @@ log_metrics <-
 tree_metrics <- 
   tree_res %>% 
   collect_metrics(summarise = TRUE) %>%
-  mutate(model = "Decision Tree")
+  mutate(model = "Decision Tree",
+        time = tree_time)
 
 rf_metrics <- 
   rf_res %>% 
   collect_metrics(summarise = TRUE) %>%
-  mutate(model = "Random Forest")
+  mutate(model = "Random Forest",
+        time = rf_time)
 
 xgb_metrics <- 
   xgb_res %>% 
   collect_metrics(summarise = TRUE) %>%
-  mutate(model = "XGBoost")
+  mutate(model = "XGBoost",
+        time = xgb_time)
 
 knn_metrics <- 
   knn_res %>% 
   collect_metrics(summarise = TRUE) %>%
-  mutate(model = "Knn")
+  mutate(model = "Knn",
+        time = knn_time)
 
 # add more models here
 
@@ -652,7 +660,6 @@ model_compare <- bind_rows(log_metrics,
   mutate(time = str_sub(time, end = -13) %>% 
            as.double()
          )
-
 
 #Pivot wider to create barplot
   model_comp <- model_compare %>% 
@@ -856,7 +863,7 @@ cost_summary <- cost %>%
 cost_summary
   
 print(scales::dollar(cost_summary$false_naives - cost_summary$false_negatives - cost_summary$false_positives))
-#Implementing our model will save $1,023,627
+#Implementing our model will save money
 # Calculated by doing False Naive cost - (False negative cost + false positive cost)
 
 ```
