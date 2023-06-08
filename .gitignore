@@ -1,0 +1,6 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+data/card_fraud.csv
+data/cdc-covid-geography
