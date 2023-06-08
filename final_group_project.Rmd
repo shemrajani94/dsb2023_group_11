@@ -358,12 +358,11 @@ Thus, we will work with a smaller sample of 10% of the values the original datas
 ```
 
 
-
 ```{r}
 # select a smaller subset
 my_card_fraud <- card_fraud %>% 
   select(is_fraud, category, amt, hour, wday, month_name, age, distance_km) %>% 
-  slice_sample(prop = 0.01) %>% 
+  slice_sample(prop = 0.10) %>% 
   mutate(hour = as.factor(hour))
 ```
 
@@ -834,22 +833,26 @@ cost <- best_model_preds %>%
 cost <- cost %>%
   mutate(
     false_naives = if_else((is_fraud ==1),amt,0), 
+      # naive false-- we think every single transaction is ok and not fraud. We lose the amount of the transaction if its fraud
+
     false_negatives=if_else((is_fraud ==1)&(pred ==0),amt,0),
-    false_positives=if_else((is_fraud ==0)&(pred ==1),amt,0),
+     # false negatives-- we thought they were not fraud, but they were. We lose the amount of transaction if its fraud
+
+
+    false_positives=if_else((is_fraud ==0)&(pred ==1),amt *0.02,0),
+      # false positives-- we thought they were fraud, but they were not. We lose the amount of the transaction * 0.02 (our margin)
+
     true_positives=0,
     true_negatives=0
 
 
   
 
-  # naive false-- we think every single transaction is ok and not fraud
 
 
-  # false negatives-- we thought they were not fraud, but they were
 
   
   
-  # false positives-- we thought they were fraud, but they were not
 
   
     
@@ -868,8 +871,9 @@ cost_summary <- cost %>%
 
 cost_summary
   
-print(scales::dollar(cost_summary$false_naives - cost_summary$false_negatives - cost_summary$false_positives * 0.02))
+print(scales::dollar(cost_summary$false_naives - cost_summary$false_negatives - cost_summary$false_positives))
 #Implementing our model will save $1,023,627
+# Calculated by doing False Naive cost - (False negative cost + false positive cost)
 
 ```
 
