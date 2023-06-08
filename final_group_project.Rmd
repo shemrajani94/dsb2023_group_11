@@ -837,17 +837,15 @@ cost <- cost %>%
 
     false_negatives=if_else((is_fraud ==1)&(pred ==0),amt,0),
      # false negatives-- we thought they were not fraud, but they were. We lose the amount of transaction if its fraud
-
-
+    
     false_positives=if_else((is_fraud ==0)&(pred ==1),amt *0.02,0),
       # false positives-- we thought they were fraud, but they were not. We lose the amount of the transaction * 0.02 (our margin)
 
     true_positives=0,
-          # true positives-- we thought they were fraud, and they were 
-
+      # true positives-- we thought they were fraud, and they were 
+    
     true_negatives=0
       # true negatives-- we thought they were ok, and they were 
-  
 )
   
 # Summarising
