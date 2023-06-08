@@ -123,6 +123,115 @@ You can reuse your EDA from earlier, but we expect at least a few visualisations
 
 Group all variables by type and examine each variable class by class. The dataset has the following types of variables:
 
+```{r}
+
+card_fraud %>% 
+  group_by(category) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) %>% 
+  mutate(pct = count/nrow(card_fraud)) %>% 
+  mutate(category = fct_rev(fct_reorder(category, pct, max))) %>%
+  ggplot(aes(x =category, y=pct))+
+  geom_bar(position = 'dodge', stat='identity')+
+  theme_minimal(base_size=6) +
+  ggtitle("Most Transactions are Gas and Grocery") +
+  scale_y_continuous(labels = scales::percent) +
+  ggthemes::theme_economist() +
+  theme(plot.title = element_text(size = 14),
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 0.85))  # Adjust the size value as needed
+
+
+num_fraud <- card_fraud %>%
+  filter(is_fraud == 1) %>%
+  count() %>% 
+  pull(n)
+
+num_category <- card_fraud %>%
+  group_by(category) %>%
+  summarise(category_count = n())
+
+
+rate_by_cat <- card_fraud %>%
+  filter(is_fraud == 1 & !is.na(category)) %>% 
+  group_by(category) %>% 
+  summarise(category_fraud_count = n()) %>% 
+  left_join(num_category, by='category') %>% 
+  mutate(cat_fraud_pct = category_fraud_count/category_count) %>% 
+  arrange(desc(cat_fraud_pct)) 
+  
+  
+rate_by_cat %>%   
+  mutate(category = fct_rev(fct_reorder(category, cat_fraud_pct, max))) %>%
+  ggplot(aes(x =category, y=cat_fraud_pct))+
+  geom_bar(position = 'dodge', stat='identity')+
+  theme_minimal(base_size=6) +
+  ggtitle("Grocery and Online Shopping have highest percentage of fraud") +
+  scale_y_continuous(labels = scales::percent) +
+  ggthemes::theme_economist() +
+  theme(plot.title = element_text(size = 14),
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 0.85))  # Adjust the size value as needed
+
+
+card_fraud_date <- card_fraud %>% 
+                  mutate(
+                    date_only = lubridate::date(trans_date_trans_time),
+                    month_name = lubridate::month(trans_date_trans_time, label=TRUE),
+                    month_number = month(date(trans_date_trans_time)),
+                    hour = lubridate::hour(trans_date_trans_time),
+                    weekday = lubridate::wday(trans_date_trans_time, label = TRUE),
+                    weekday_num = lubridate::wday(trans_date_trans_time, label = FALSE)
+                    )
+
+card_fraud_date %>%
+  filter(is_fraud == 1 & !is.na(month_name)) %>%
+  mutate(month_name = fct_reorder(month_name, month_number, max)) %>%
+  group_by(month_name, month_number) %>%
+  summarize(pct_fraud_transactions = n() / num_fraud * 100) %>%  
+  ggplot(aes(x = month_name, y = pct_fraud_transactions)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Fraud is more likely to occur in the first half of the year than the second",
+       x = "",
+       y = "Percentage of Fradulent Transactions",
+       subtitle = "With march and may having\nhighest percentage of fraudulent transactions") +
+  ggthemes::theme_economist() + 
+  theme(plot.title = element_text(size = 14),
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 0.85))
+
+
+card_fraud_date %>%
+  filter(is_fraud == 1 & !is.na(hour)) %>%
+  arrange(hour) %>% 
+  group_by(hour) %>%
+  summarize(pct_fraud_transactions = n() / num_fraud * 100) %>%  
+  ggplot(aes(x = hour, y = pct_fraud_transactions)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_x_continuous(breaks = seq(0, 23, by = 1)) +
+  labs(title = "A lot of the fraudulent transactions occur just before midnight\nor in the late hours of the night",
+       x = "Hour",
+       y = "Percentage of Fradulent Transactions",
+       subtitle = "11pm to midnight is the most common time for fraudulent transactions to occur") +
+  ggthemes::theme_economist() + 
+  theme(plot.title = element_text(size = 14),
+        axis.text.x = element_text(hjust = 0.5, vjust = 0.85))
+
+
+card_fraud_date %>%
+  filter(is_fraud == 1 & !is.na(weekday)) %>%
+  mutate(weekday = fct_reorder(weekday, weekday_num, max)) %>%
+  group_by(weekday, weekday_num) %>%
+  summarize(pct_fraud_transactions = n() / num_fraud * 100) %>%  
+  ggplot(aes(x = weekday, y = pct_fraud_transactions)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "The weekends and monday are the most likely days for fraud",
+       x = "",
+       y = "Percentage of Fradulent Transactions",
+       subtitle = "Wednesday is the least likely day") +
+  ggthemes::theme_economist() + 
+  theme(plot.title = element_text(size = 14),
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 0.85))
+```
+
+
 1.  Strings
 2.  Geospatial Data
 3.  Dates
@@ -168,7 +277,8 @@ The predictors `category` and `job` are transformed into factors.
 
 card_fraud <- card_fraud %>% 
   mutate(category = factor(category),
-         job = factor(job))
+         job = factor(job),
+         hour = factor(hour))
 
 ```
 
@@ -200,8 +310,9 @@ Thus, we will work with a smaller sample of 10% of the values the original datas
 ```{r}
 # select a smaller subset
 my_card_fraud <- card_fraud %>% 
-  # select a smaller subset, 10% of the entire dataframe 
-  slice_sample(prop = 0.10) 
+  select(is_fraud, category, amt, hour, wday, month_name, age, distance_km) %>% 
+  slice_sample(prop = 0.01) %>% 
+  mutate(hour = as.factor(hour))
 ```
 
 
@@ -240,10 +351,26 @@ What steps are you going to add to your recipe? Do you need to do any log transf
 
 ```{r, define_recipe}
 
-fraud_rec <- recipe(is_fraud ~ ., data = card_fraud_train) %>%
+fraud_rec <- recipe(is_fraud ~ ., 
+                    data = card_fraud_train) %>%
+              step_log(amt, distance_km) %>% 
+              step_naomit(everything(), skip = TRUE) %>% 
+              step_novel(all_nominal(), -all_outcomes()) %>%
+              step_normalize(all_numeric(), -all_outcomes()) %>%
+              step_dummy(all_nominal(), -all_outcomes()) %>%
+              step_zv(all_numeric(), -all_outcomes())
 
-
-
+# - `step_novel()` converts all nominal variables to factors and takes care of other issues related to categorical variables.
+# 
+# - `step_log()` will log transform data (since some of our numerical variables are right-skewed). Note that this step can not be performed on negative numbers.
+# 
+# - `step_normalize()` normalizes (center and scales) the numeric variables to have a standard deviation of one and a mean of zero. (i.e., z-standardization).
+# 
+# - `step_dummy()` converts our factor column ocean_proximity into numeric binary (0 and 1) variables.
+# 
+# `step_zv()` removes any numeric variables that have zero variance.
+# 
+# `step_corr()` will remove predictor variables with high correlations with other predictor variables.
 
 
 ```
@@ -278,6 +405,43 @@ You should define the following classification models:
 # 2. set the `engine`
 # 3. Set the `mode`:  classification
 
+# Logistic regression
+log_spec <-  logistic_reg() %>%  # model type
+  set_engine(engine = "glm") %>%  # model engine
+  set_mode("classification") # model mode
+
+# Show your model specification
+log_spec
+
+# Decision Tree
+tree_spec <- decision_tree() %>%
+  set_engine(engine = "C5.0") %>%
+  set_mode("classification")
+
+tree_spec
+
+# Random Forest
+library(ranger)
+
+rf_spec <- 
+  rand_forest() %>% 
+  set_engine("ranger", importance = "impurity") %>% 
+  set_mode("classification")
+
+
+# Boosted tree (XGBoost)
+library(xgboost)
+
+xgb_spec <- 
+  boost_tree() %>% 
+  set_engine("xgboost") %>% 
+  set_mode("classification") 
+
+# K-nearest neighbour (k-NN)
+knn_spec <- 
+  nearest_neighbor(neighbors = 4) %>% # we can adjust the number of neighbors 
+  set_engine("kknn") %>% 
+  set_mode("classification") 
 
 ```
 
@@ -294,6 +458,32 @@ log_wflow <- # new workflow object
  add_recipe(fraud_rec) %>%   # use the new recipe
  add_model(log_spec)   # add your model spec
 
+tree_wflow <-
+ workflow() %>%
+ add_recipe(fraud_rec) %>% 
+ add_model(tree_spec) 
+
+rf_wflow <-
+ workflow() %>%
+ add_recipe(fraud_rec) %>% 
+ add_model(rf_spec) 
+
+xgb_wflow <-
+ workflow() %>%
+ add_recipe(fraud_rec) %>% 
+ add_model(xgb_spec)
+
+knn_wflow <-
+ workflow() %>%
+ add_recipe(fraud_rec) %>% 
+ add_model(knn_spec)
+
+
+
+# show object
+knn_wflow
+
+
 ```
 
 
@@ -302,6 +492,9 @@ log_wflow <- # new workflow object
 You may want to compare the time it takes to fit each model. `tic()` starts a simple timer and `toc()` stops it
 
 ```{r, fit_models}
+
+
+
 tic()
 log_res <- log_wflow %>% 
   fit_resamples(
@@ -311,8 +504,55 @@ log_res <- log_wflow %>%
       kap, roc_auc, sens, spec),
     control = control_resamples(save_pred = TRUE)) 
 time <- toc()
-log_time <- time[[4]]
+fit_time_models <- c(time[[4]])
 
+
+tic()
+tree_res <- tree_wflow %>% 
+  fit_resamples(
+    resamples = cv_folds, 
+    metrics = metric_set(
+      recall, precision, f_meas, accuracy,
+      kap, roc_auc, sens, spec),
+    control = control_resamples(save_pred = TRUE)) 
+time <- toc()
+fit_time_models <- append(fit_time_models,time[[4]])
+
+tic()
+rf_res <- rf_wflow %>% 
+  fit_resamples(
+    resamples = cv_folds, 
+    metrics = metric_set(
+      recall, precision, f_meas, accuracy,
+      kap, roc_auc, sens, spec),
+    control = control_resamples(save_pred = TRUE)) 
+time <- toc()
+fit_time_models <- append(fit_time_models,time[[4]])
+
+tic()
+xgb_res <- xgb_wflow %>% 
+  fit_resamples(
+    resamples = cv_folds, 
+    metrics = metric_set(
+      recall, precision, f_meas, accuracy,
+      kap, roc_auc, sens, spec),
+    control = control_resamples(save_pred = TRUE)) 
+time <- toc()
+fit_time_models <- append(fit_time_models,time[[4]])
+
+tic()
+knn_res <- knn_wflow %>% 
+  fit_resamples(
+    resamples = cv_folds, 
+    metrics = metric_set(
+      recall, precision, f_meas, accuracy,
+      kap, roc_auc, sens, spec),
+    control = control_resamples(save_pred = TRUE)) 
+time <- toc()
+fit_time_models <- append(fit_time_models,time[[4]])
+
+'Logistic Tree    Random Forest XGB    KNN'
+'3.99   4.521  7.458       2.418  16.544'
 
 ```
 
@@ -328,7 +568,27 @@ log_metrics <-
   mutate(model = "Logistic Regression",
          time = log_time)
 
-# add mode models here
+tree_metrics <- 
+  tree_res %>% 
+  collect_metrics(summarise = TRUE) %>%
+  mutate(model = "Decision Tree")
+
+rf_metrics <- 
+  rf_res %>% 
+  collect_metrics(summarise = TRUE) %>%
+  mutate(model = "Random Forest")
+
+xgb_metrics <- 
+  xgb_res %>% 
+  collect_metrics(summarise = TRUE) %>%
+  mutate(model = "XGBoost")
+
+knn_metrics <- 
+  knn_res %>% 
+  collect_metrics(summarise = TRUE) %>%
+  mutate(model = "Knn")
+
+# add more models here
 
 # create dataframe with all models
 model_compare <- bind_rows(log_metrics,
@@ -343,29 +603,111 @@ model_compare <- bind_rows(log_metrics,
          )
 
 
+#Pivot wider to create barplot
+  model_comp <- model_compare %>% 
+  select(model, .metric, mean, std_err) %>% 
+  pivot_wider(names_from = .metric, values_from = c(mean, std_err)) 
+
+# show mean are under the curve (ROC-AUC) for every model
+model_comp %>% 
+  arrange(mean_roc_auc) %>% 
+  mutate(model = fct_reorder(model, mean_roc_auc)) %>% # order results
+  ggplot(aes(model, mean_roc_auc, fill=model)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_brewer(palette = "Blues") +
+   geom_text(
+     size = 3,
+     aes(label = round(mean_roc_auc, 2), 
+         y = mean_roc_auc + 0.08),
+     vjust = 1
+  )+
+  theme_light()+
+  theme(legend.position = "none")+
+  labs(y = NULL)
+
+
+log_pred <- log_res %>% collect_predictions()
+log_pred %>% 
+  roc_curve(is_fraud, .pred_1) %>% 
+  autoplot() +
+  labs(title="Logisitic Regression ROC")
+
+tree_pred <- tree_res %>% collect_predictions()
+tree_pred %>% 
+  roc_curve(is_fraud, .pred_1) %>% 
+  autoplot() +
+  labs(title="Decision Tree ROC")
+
+rf_pred <- rf_res %>% collect_predictions()
+rf_pred %>% 
+  roc_curve(is_fraud, .pred_1) %>% 
+  autoplot() +
+  labs(title="Random Forest ROC")
+
+
+xgb_pred <- xgb_res %>% collect_predictions()
+xgb_pred %>% 
+  roc_curve(is_fraud, .pred_1) %>% 
+  autoplot() +
+  labs(title="XGB ROC")
+
+
+knn_pred <- knn_res %>% collect_predictions()
+knn_pred %>% 
+  roc_curve(is_fraud, .pred_1) %>% 
+  autoplot() +
+  labs(title="KNN ROC")
 ```
 
 ## Which metric to use
 
 This is a highly imbalanced data set, as roughly 99.5% of all transactions are ok, and it's only 0.5% of transactions that are fraudulent. A `naive` model, which classifies everything as ok and not-fraud, would have an accuracy of 99.5%, but what about the sensitivity, specificity, the AUC, etc?
+```{=html}
+<span style="color:red">
+<ul>
+  <li>
+    <p>Since accuracy is very high for all models, specficity is the more important metric to consider. This is the true negative rate. It is calculated as the ratio of true negatives (TN) to the sum of true negatives and false positives (FP). A high specificity indicates that the model is good at identifying negative cases correctly </p>
+        <p>Area Under Curve is a metric that combines sensitivity and specificity.The ROC curve is a graphical representation of the trade-off between the true positive rate (sensitivity) and the false positive rate (1 - specificity) for different classification thresholds. AUC-ROC measures the overall performance of the classifier across all possible thresholds. A higher AUC-ROC indicates better model performance.  </p>
+  </li>
+    <p>In our training data we see that XGBoost and Random Forest have the same AUC score. We have decided to choose the XGB model to apply to the test set because XGBoost uses the gradient descent algorithm meaning that it improves on itself to solve for the local minima.</p>
+  </li>
+</ul>
+</span>
+```
+
+
 
 ## `last_fit()`
 ```{r}
 
-## `last_fit()` on test set
+last_fit_xgb <- last_fit(xgb_wflow, 
+                        split = data_split,
+                        metrics = metric_set(
+                          accuracy, f_meas, kap, precision,
+                          recall, roc_auc, sens, spec))
 
-# - `last_fit()`  fits a model to the whole training data and evaluates it on the test set. 
-# - provide the workflow object of the best model as well as the data split object (not the training data). 
- 
+last_fit_xgb %>% collect_metrics(summarize = TRUE)
 
+#Compare to training
+xgb_res %>% collect_metrics(summarize = TRUE)
 ```
-
-
 
 ## Get variable importance using `vip` package
 
 
 ```{r}
+
+library(vip)
+
+last_fit_xgb %>% 
+  pluck(".workflow", 1) %>%   
+  pull_workflow_fit() %>% 
+  vip(num_features = 100) +
+  theme_light()
+
+## Amount and category_grocery are the most important features, 
+## followed by age and whether the transaction was made between 10-11pm
 
 ```
 
@@ -385,7 +727,9 @@ last_fit_xgb %>%
 last_fit_xgb %>% 
   collect_predictions() %>% 
   roc_curve(is_fraud, .pred_1) %>% 
-  autoplot()
+  autoplot() +
+  labs(title="XGB ROC Test")
+
 ```
 
 
@@ -396,6 +740,8 @@ last_fit_xgb %>%
 
 ```{r}
 #| label: savings-for-cc-company
+
+best_model_wflow <- xgb_wflow
 
 best_model_preds <- 
   best_model_wflow %>% 
@@ -412,6 +758,13 @@ cost <- best_model_preds %>%
 
 cost <- cost %>%
   mutate(
+    false_naives = if_else((is_fraud ==1),amt,0), 
+    false_negatives=if_else((is_fraud ==1)&(pred ==0),amt,0),
+    false_positives=if_else((is_fraud ==0)&(pred ==1),amt,0),
+    true_positives=0,
+    true_negatives=0
+
+
   
 
   # naive false-- we think every single transaction is ok and not fraud
@@ -439,6 +792,9 @@ cost_summary <- cost %>%
             ~ sum(.x, na.rm = TRUE)))
 
 cost_summary
+  
+print(scales::dollar(cost_summary$false_naives - cost_summary$false_negatives - cost_summary$false_positives * 0.02))
+#Implementing our model will save $1,023,627
 
 ```
 
